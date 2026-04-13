@@ -387,6 +387,25 @@
   </div>
 
   <div class="sync-bar" id="sync-bar"></div>
+
+  <!-- ⑥ Share modal -->
+  <div class="overlay hide" id="share-modal" onclick="bgClose(event,'share-modal')">
+    <div class="sheet sheet-sm sheet-form" onclick="event.stopPropagation()">
+      <div class="drag-bar"></div>
+      <div class="mhdr">
+        <span class="mhdr-title">🎉 설정 완료!</span>
+        <button class="close-btn" onclick="closeSheet('share-modal')">✕</button>
+      </div>
+      <p style="font-size:14px;line-height:1.7;margin-bottom:14px;">
+        아래 링크를 단톡에 공유하면<br>
+        <strong>범·동·림은 클릭 한 번으로 바로 연동</strong>돼요.<br>
+        <span style="font-size:12px;color:var(--muted);">한 번 열면 다음부턴 그냥 URL로 접속하면 끝.</span>
+      </p>
+      <div style="background:#F3F4F6;border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;word-break:break-all;color:#374151;margin-bottom:14px;" id="share-modal-url"></div>
+      <button class="btn-save" onclick="copyShareUrl()">📋 공유 링크 복사</button>
+      <button class="btn-edit" onclick="closeSheet('share-modal')">나중에 공유하기</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -447,20 +466,18 @@ async function connectTokenOnly() {
 
 async function createGist() {
   const token = $('new-token').value.trim();
-  if (!token) return;
+  if (!token) { alert('토큰을 입력해주세요.'); return; }
   sync('Gist 생성 중…');
   try {
     const id = await apiCreate(token);
     _pendingGist = id; _pendingToken = token;
     lsSet('cal_gist_id', id); lsSet('cal_token', token);
-
-    // 공유 링크 생성 (해시에 토큰|GistID 포함)
-    const shareUrl = `${location.origin}${location.pathname}#${token}|${id}`;
-    $('share-gist-id').textContent = shareUrl;
-    $('share-box').classList.remove('hidden');
     syncHide();
-    // 공유 링크 복사 버튼 클릭 후 시작
-  } catch(e) { sync('오류: ' + e.message, true); }
+    await startApp(); // 바로 앱으로 진입
+    showShareModal(); // 앱 안에서 공유 링크 표시
+  } catch(e) {
+    alert('Gist 생성 실패: ' + e.message + '\n\n토큰에 gist 권한이 있는지 확인해주세요.');
+  }
 }
 
 async function connectGist() {
@@ -482,6 +499,18 @@ function copyShareInfo() {
   const url = $('share-gist-id').textContent;
   navigator.clipboard.writeText(url)
     .then(() => alert('링크 복사됐어요!\n단톡에 던지면 클릭 한 번으로 연동 끝 🎉'));
+}
+
+function showShareModal() {
+  const shareUrl = `${location.origin}${location.pathname}#${_pendingToken}|${_pendingGist}`;
+  $('share-modal-url').textContent = shareUrl;
+  $('share-modal').classList.remove('hide');
+}
+
+function copyShareUrl() {
+  const url = $('share-modal-url').textContent;
+  navigator.clipboard.writeText(url)
+    .then(() => { alert('복사됐어요! 단톡에 공유하면 클릭 한 번으로 연동 끝 🎉'); closeSheet('share-modal'); });
 }
 
 // ═══════════════════════════════════════════
