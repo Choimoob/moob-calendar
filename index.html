@@ -436,8 +436,9 @@ function renderList(){
     list.innerHTML = '<div class="empty"><span>📭</span>아직 일정이 없어요<br><small>+ 버튼으로 추가해보세요</small></div>';
     return;
   }
-  let html = up.map(ev => cardHTML(ev, today)).join('');
-  if(past.length) html += `<div class="sec-lbl" style="margin-top:18px;margin-bottom:8px;">지난 일정</div>` + past.slice().reverse().map(ev => cardHTML(ev, today)).join('');
+  let html = up.length
+    ? up.map(ev => cardHTML(ev, today)).join('')
+    : '<div class="empty"><span>📭</span>다가오는 일정이 없어요<br><small>+ 버튼으로 추가해보세요</small></div>';
   list.innerHTML = html;
   list.querySelectorAll('.ev-card').forEach(c =>
     c.addEventListener('click', () => openDetail(c.dataset.id))
@@ -475,8 +476,8 @@ function switchView(v){
   document.getElementById('wv').classList.toggle('hidden', v!=='week');
   renderCal();
 }
-function calPrev(){ view==='month' ? (curDate=new Date(curDate.getFullYear(),curDate.getMonth()-1,1)) : (curDate=new Date(curDate-7*864e5)); renderCal(); }
-function calNext(){ view==='month' ? (curDate=new Date(curDate.getFullYear(),curDate.getMonth()+1,1)) : (curDate=new Date(curDate+7*864e5)); renderCal(); }
+function calPrev(){ view==='month' ? (curDate=new Date(curDate.getFullYear(),curDate.getMonth()-1,1)) : (curDate=new Date(+curDate - 7*864e5)); renderCal(); }
+function calNext(){ view==='month' ? (curDate=new Date(curDate.getFullYear(),curDate.getMonth()+1,1)) : (curDate=new Date(+curDate + 7*864e5)); renderCal(); }
 function renderCal(){ view==='month' ? renderMonth() : renderWeek(); }
 
 function renderMonth(){
