@@ -207,39 +207,58 @@
   <div id="setup" style="flex:1;overflow-y:auto;padding:28px 20px 48px;display:flex;flex-direction:column;">
     <div class="setup-logo">📅</div>
     <div class="setup-title">뭅범동림 캘린더</div>
-    <div class="setup-sub">GitHub Gist를 저장소로 사용해요.<br>완전 무료 · 카드 불필요 · 4명 공유</div>
 
-    <div class="step-card">
-      <div style="display:flex;align-items:flex-start;gap:4px;">
-        <span class="step-num">1</span>
-        <p>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
-        <code>New token</code> 클릭 → <code>gist</code> 체크 → 생성 후 복사</p>
+    <!-- Mode A: GIST_ID가 세팅된 경우 → 토큰만 입력 -->
+    <div id="setup-token-only" class="hidden">
+      <div class="setup-sub">GitHub 토큰을 입력하면 바로 시작해요.<br>한 번 입력하면 이 기기에선 다시 안 물어봐요.</div>
+      <div class="step-card">
+        <div style="display:flex;align-items:flex-start;gap:4px;">
+          <span class="step-num">1</span>
+          <p>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
+          <code>New token</code> 클릭 → <code>gist</code> 체크 → 생성 후 복사</p>
+        </div>
       </div>
+      <div class="fg" style="margin-top:10px;">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="token-only-input" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <button class="btn-primary" onclick="connectTokenOnly()">시작하기</button>
     </div>
 
-    <div class="fg" style="margin-top:10px;">
-      <label>GitHub Personal Access Token</label>
-      <input type="password" id="new-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-    </div>
-    <button class="btn-primary" onclick="createGist()">✨ Gist 생성 &amp; 시작</button>
+    <!-- Mode B: GIST_ID 미세팅 → 최초 관리자 설정 -->
+    <div id="setup-full">
+      <div class="setup-sub">GitHub Gist를 저장소로 사용해요.<br>완전 무료 · 카드 불필요 · 4명 공유</div>
+      <div class="step-card">
+        <div style="display:flex;align-items:flex-start;gap:4px;">
+          <span class="step-num">1</span>
+          <p>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
+          <code>New token</code> 클릭 → <code>gist</code> 체크 → 생성 후 복사</p>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:10px;">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="new-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <button class="btn-primary" onclick="createGist()">✨ Gist 생성 &amp; 시작</button>
 
-    <div class="share-box hidden" id="share-box">
-      <div class="share-title">✅ Gist가 생성됐어요! 친구들에게 공유하세요</div>
-      <div class="share-id" id="share-gist-id"></div>
-      <p>Gist ID와 토큰을 친구들에게 공유하면 같이 쓸 수 있어요.</p>
-      <button class="btn-copy" onclick="copyShareInfo()">📋 Gist ID + 토큰 복사</button>
-    </div>
+      <div class="share-box hidden" id="share-box">
+        <div class="share-title">✅ Gist 생성 완료!</div>
+        <div style="font-size:12px;color:#166534;margin-bottom:6px;">아래 Gist ID를 <code style="background:#DCFCE7;padding:1px 5px;border-radius:3px;color:#166534;">index.html</code> 파일 상단 <code style="background:#DCFCE7;padding:1px 5px;border-radius:3px;color:#166534;">GIST_ID = ''</code> 안에 붙여넣고 GitHub에 다시 push하면, 다음부턴 토큰만 입력하면 돼요.</div>
+        <div class="share-id" id="share-gist-id"></div>
+        <button class="btn-copy" onclick="copyShareInfo()">📋 Gist ID + 토큰 복사 (친구들에게 공유)</button>
+      </div>
 
-    <div class="divider" style="margin-top:20px;">이미 Gist가 있나요?</div>
-    <div class="fg">
-      <label>Gist ID (친구에게 받은 경우)</label>
-      <input type="text" id="exist-gist-id" class="mono" placeholder="a1b2c3d4e5f6...">
+      <div class="divider" style="margin-top:20px;">이미 Gist가 있나요?</div>
+      <div class="fg">
+        <label>Gist ID</label>
+        <input type="text" id="exist-gist-id" class="mono" placeholder="a1b2c3d4e5f6...">
+      </div>
+      <div class="fg">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="exist-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <button class="btn-secondary" onclick="connectGist()">연결하기</button>
     </div>
-    <div class="fg">
-      <label>GitHub Personal Access Token</label>
-      <input type="password" id="exist-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-    </div>
-    <button class="btn-secondary" onclick="connectGist()">연결하기</button>
   </div>
 
   <!-- ② Main ───────────────────────────────── -->
@@ -368,10 +387,19 @@
 
 <script>
 // ═══════════════════════════════════════════
+//  ★ 최초 1회 Gist 생성 후 여기에 ID 입력 ★
+//  그 뒤론 토큰만 입력하면 바로 사용 가능
+// ═══════════════════════════════════════════
+const GIST_ID = ''; // 예: 'a1b2c3d4e5f6g7h8i9j0'
+
+// ═══════════════════════════════════════════
 //  GitHub Gist API
 // ═══════════════════════════════════════════
 const GH = 'https://api.github.com/gists';
-const cfg = () => ({ gistId: ls('cal_gist_id'), token: ls('cal_token') });
+const cfg = () => ({
+  gistId: GIST_ID || ls('cal_gist_id'),
+  token:  ls('cal_token')
+});
 
 async function apiRead() {
   const { gistId, token } = cfg();
@@ -407,6 +435,20 @@ async function apiCreate(token) {
 //  Setup
 // ═══════════════════════════════════════════
 let _pendingGist = null, _pendingToken = null;
+
+async function connectTokenOnly() {
+  const token = $('token-only-input').value.trim();
+  if (!token) return;
+  sync('확인 중…');
+  try {
+    lsSet('cal_token', token);
+    await apiRead(); // 연결 검증
+    syncHide(); startApp();
+  } catch(e) {
+    localStorage.removeItem('cal_token');
+    sync('토큰 오류: ' + e.message, true);
+  }
+}
 
 async function createGist() {
   const token = $('new-token').value.trim();
@@ -456,7 +498,18 @@ let editingId = null, viewingEv = null;
 function boot() {
   populateTimes();
   if (curDate < MIN_D) curDate = new Date(MIN_D);
-  if (ls('cal_gist_id') && ls('cal_token')) { startApp(); return; }
+
+  // 이미 토큰 저장돼 있으면 바로 시작
+  const token = ls('cal_token');
+  const gistId = GIST_ID || ls('cal_gist_id');
+  if (token && gistId) { startApp(); return; }
+
+  // GIST_ID 상수가 세팅된 경우 → 토큰만 입력
+  if (GIST_ID) {
+    show('setup-token-only');
+    hide('setup-full');
+  }
+  // GIST_ID 미세팅 → 최초 관리자 설정
 }
 
 async function startApp() {
