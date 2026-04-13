@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>뭅범동림 캘린더</title>
+  <style>
+    :root {
+      --c-뭅: #E63946; --c-범: #457B9D; --c-동: #2A9D8F; --c-림: #9B5DE5;
+      --bg: #F0F2F5; --surface: #fff; --text: #1A1A2E;
+      --muted: #6B7280; --border: #E5E7EB; --r: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100dvh; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: var(--bg); color: var(--text); font-size: 14px; }
+    .app { display: flex; flex-direction: column; height: 100dvh; }
+
+    /* ── Setup ──────────────────────────────── */
+    #setup {
+      flex: 1; overflow-y: auto; padding: 28px 20px 40px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .setup-logo { font-size: 32px; margin-bottom: 6px; }
+    .setup-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .setup-sub { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+    .setup-section { margin-bottom: 22px; }
+    .setup-section-title {
+      font-size: 11px; font-weight: 800; color: var(--muted);
+      letter-spacing: .06em; margin-bottom: 10px;
+    }
+    .step-card {
+      background: var(--surface); border-radius: var(--r);
+      border: 1px solid var(--border); padding: 14px 16px;
+      margin-bottom: 8px;
+    }
+    .step-card p { font-size: 13px; line-height: 1.65; color: var(--text); }
+    .step-card code {
+      display: inline-block; background: #F3F4F6; border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: monospace; color: #E63946;
+    }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; background: #1A1A2E; color: #fff;
+      border-radius: 50%; font-size: 11px; font-weight: 700;
+      margin-right: 6px; flex-shrink: 0;
+    }
+    .step-row { display: flex; align-items: flex-start; gap: 2px; }
+    .fg { margin-bottom: 12px; }
+    .fg label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 5px; letter-spacing: .03em; }
+    .fg input, .fg select, .fg textarea {
+      width: 100%; padding: 11px 12px;
+      border: 1.5px solid var(--border); border-radius: var(--r);
+      font-size: 14px; font-family: inherit; background: var(--surface);
+      color: var(--text); outline: none; transition: border-color .15s;
+    }
+    .fg input:focus { border-color: #457B9D; }
+    .fg input.mono { font-family: monospace; font-size: 13px; }
+    .btn-primary {
+      width: 100%; padding: 14px; background: #1A1A2E;
+      color: #fff; border: none; border-radius: var(--r);
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn-primary:active { opacity: .8; }
+    .btn-secondary {
+      width: 100%; padding: 12px; background: var(--surface);
+      color: var(--text); border: 1.5px solid var(--border);
+      border-radius: var(--r); font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-secondary:active { background: var(--bg); }
+    .divider {
+      text-align: center; font-size: 12px; color: var(--muted);
+      margin: 12px 0; position: relative;
+    }
+    .divider::before, .divider::after {
+      content: ''; position: absolute; top: 50%;
+      width: 42%; height: 1px; background: var(--border);
+    }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+    .share-box {
+      background: #F0FDF4; border: 1.5px solid #86EFAC;
+      border-radius: var(--r); padding: 14px 16px; margin-top: 14px;
+    }
+    .share-box .share-title { font-size: 13px; font-weight: 700; color: #166534; margin-bottom: 8px; }
+    .share-box .share-id {
+      font-family: monospace; font-size: 13px; background: #DCFCE7;
+      padding: 8px 10px; border-radius: 6px; word-break: break-all;
+      color: #166534; margin-bottom: 8px;
+    }
+    .share-box p { font-size: 12px; color: #166534; line-height: 1.5; }
+    .btn-copy {
+      margin-top: 8px; width: 100%; padding: 10px;
+      background: #16A34A; color: #fff; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    .header {
+      height: 52px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 10px; flex-shrink: 0; z-index: 50;
+    }
+    .header-title { font-size: 17px; font-weight: 800; flex: 1; }
+    .view-toggle { display: flex; background: var(--bg); border-radius: 8px; padding: 3px; gap: 2px; }
+    .vbtn {
+      padding: 5px 13px; border: none; background: transparent;
+      border-radius: 6px; font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--muted); transition: all .15s;
+    }
+    .vbtn.on { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+    .icon-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 7px; padding: 5px 8px;
+      font-size: 14px; cursor: pointer; color: var(--muted);
+      line-height: 1;
+    }
+
+    /* ── User bar ────────────────────────────── */
+    .userbar {
+      height: 46px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 7px; flex-shrink: 0;
+    }
+    .userbar-label { font-size: 11px; color: var(--muted); }
+    .uchip {
+      padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
+      cursor: pointer; border: 2px solid transparent; opacity: .4;
+      transition: all .15s; user-select: none;
+    }
+    .uchip.on { opacity: 1; }
+    .uchip[data-u="뭅"]     { background:#FDECEA; color:var(--c-뭅); }
+    .uchip[data-u="범"]     { background:#E8EFF6; color:var(--c-범); }
+    .uchip[data-u="동"]     { background:#E2F4F2; color:var(--c-동); }
+    .uchip[data-u="림"]     { background:#F3ECFD; color:var(--c-림); }
+    .uchip.on[data-u="뭅"]  { border-color:var(--c-뭅); }
+    .uchip.on[data-u="범"]  { border-color:var(--c-범); }
+    .uchip.on[data-u="동"]  { border-color:var(--c-동); }
+    .uchip.on[data-u="림"]  { border-color:var(--c-림); }
+
+    /* ── Calendar main ───────────────────────── */
+    .cal-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .mnav, .wnav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; background: var(--surface); flex-shrink: 0;
+    }
+    .mnav h2, .wnav h2 { font-size: 16px; font-weight: 700; }
+    .navbtn {
+      background: none; border: 1px solid var(--border);
+      width: 32px; height: 32px; border-radius: 8px;
+      font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; color: var(--text);
+    }
+
+    /* ── Month ───────────────────────────────── */
+    #mv { display: flex; flex-direction: column; height: 100%; }
+    .mdow {
+      display: grid; grid-template-columns: repeat(7,1fr);
+      background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .mdow span { text-align: center; padding: 5px 0; font-size: 11px; font-weight: 700; color: var(--muted); }
+    .mgrid {
+      flex: 1; overflow-y: auto;
+      display: grid; grid-template-columns: repeat(7,1fr);
+      grid-auto-rows: minmax(78px, 1fr);
+      background: var(--border); gap: 1px;
+    }
+    .mday { background: var(--surface); padding: 4px 3px; cursor: pointer; }
+    .mday.gray   { background: #FAFAFA; }
+    .mday.tday   { background: #FFFBF0; }
+    .mday.out    { opacity: .35; pointer-events: none; }
+    .dnum {
+      font-size: 12px; font-weight: 500;
+      width: 22px; height: 22px; display: flex;
+      align-items: center; justify-content: center;
+      border-radius: 50%; margin-bottom: 2px;
+    }
+    .tday .dnum  { background: #E63946; color: #fff; font-weight: 700; }
+    .sun  .dnum  { color: #E63946; }
+    .sat  .dnum  { color: var(--c-범); }
+    .epill {
+      display: block; padding: 2px 5px; border-radius: 3px;
+      font-size: 10px; color: #fff; font-weight: 600;
+      margin-bottom: 1px; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; cursor: pointer;
+    }
+    .epill-more { font-size: 10px; color: var(--muted); padding-left: 3px; }
+
+    /* ── Week ────────────────────────────────── */
+    #wv { display: flex; flex-direction: column; height: 100%; }
+    .wscroll { flex: 1; overflow: auto; }
+    .wgrid { display: grid; grid-template-columns: 40px repeat(7, minmax(0,1fr)); min-width: 340px; }
+    .whead {
+      position: sticky; top: 0; z-index: 20; background: var(--surface);
+      border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+      padding: 5px 2px; text-align: center;
+    }
+    .whead .wd { font-size: 10px; color: var(--muted); font-weight: 600; }
+    .whead .wdate { font-size: 14px; font-weight: 700; }
+    .whead.tcol .wd { color: #E63946; }
+    .whead.tcol .wdate {
+      background: #E63946; color: #fff; border-radius: 50%;
+      width: 24px; height: 24px; display: flex;
+      align-items: center; justify-content: center; margin: 0 auto;
+    }
+    .wtlabel {
+      height: 30px; border-bottom: 1px solid #F0F0F0;
+      border-right: 1px solid var(--border);
+      font-size: 9px; color: var(--muted);
+      padding-right: 4px; padding-top: 2px; text-align: right;
+    }
+    .wslot {
+      height: 30px; border-bottom: 1px solid #F0F0F0;
+      border-right: 1px solid var(--border);
+      position: relative; cursor: pointer;
+    }
+    .wslot:hover { background: #F7F9FF; }
+    .hborder { border-bottom-color: var(--border) !important; }
+    .wevent {
+      position: absolute; left: 1px; right: 1px; top: 1px;
+      border-radius: 4px; padding: 2px 4px;
+      font-size: 10px; font-weight: 600; color: #fff;
+      overflow: hidden; cursor: pointer; z-index: 5; line-height: 1.3;
+    }
+
+    /* ── FAB ─────────────────────────────────── */
+    .fab {
+      position: fixed; bottom: 22px; right: 18px;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: #E63946; color: #fff; border: none;
+      font-size: 26px; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(230,57,70,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; transition: transform .15s;
+    }
+    .fab:active { transform: scale(.9); }
+
+    /* ── Bottom sheet modal ───────────────────── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+    }
+    .overlay.hide { display: none; }
+    .sheet {
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 560px; max-height: 93dvh;
+      overflow-y: auto; padding: 20px 18px 36px;
+    }
+    .drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+    .mhdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .mhdr-title { font-size: 18px; font-weight: 700; }
+    .close-btn {
+      background: var(--bg); border: none; width: 30px; height: 30px;
+      border-radius: 50%; font-size: 16px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .creator-row { display: flex; gap: 6px; }
+    .cbtn {
+      flex: 1; padding: 9px 4px; border-radius: 8px;
+      border: 2px solid var(--border); font-size: 13px; font-weight: 700;
+      cursor: pointer; background: var(--surface); transition: all .15s;
+    }
+    .cbtn[data-u="뭅"]    { color:var(--c-뭅); }
+    .cbtn[data-u="범"]    { color:var(--c-범); }
+    .cbtn[data-u="동"]    { color:var(--c-동); }
+    .cbtn[data-u="림"]    { color:var(--c-림); }
+    .cbtn.on[data-u="뭅"] { background:#FDECEA; border-color:var(--c-뭅); }
+    .cbtn.on[data-u="범"] { background:#E8EFF6; border-color:var(--c-범); }
+    .cbtn.on[data-u="동"] { background:#E2F4F2; border-color:var(--c-동); }
+    .cbtn.on[data-u="림"] { background:#F3ECFD; border-color:var(--c-림); }
+    .btn-save {
+      width: 100%; padding: 14px; background: #E63946; color: #fff;
+      border: none; border-radius: var(--r); font-size: 16px; font-weight: 700;
+      cursor: pointer; margin-top: 6px;
+    }
+    .btn-del {
+      width: 100%; padding: 10px; background: none; color: #E63946;
+      border: 1.5px solid #E63946; border-radius: var(--r);
+      font-size: 14px; cursor: pointer; margin-top: 8px;
+    }
+
+    /* ── Detail sheet ─────────────────────────── */
+    .det-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 700; margin-bottom: 10px;
+    }
+    .det-title { font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+    .det-time { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .det-desc { font-size: 14px; line-height: 1.65; white-space: pre-wrap; margin-bottom: 10px; }
+    .det-url a { font-size: 13px; color: var(--c-범); word-break: break-all; }
+    .confirm-sec { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .confirm-lbl { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 8px; letter-spacing: .04em; }
+    .confirm-row { display: flex; gap: 7px; }
+    .cfbtn {
+      flex: 1; padding: 10px 2px; border-radius: 8px;
+      border: 2px solid var(--border); font-size: 13px; font-weight: 700;
+      cursor: pointer; background: var(--surface); text-align: center;
+      transition: all .15s; line-height: 1.5;
+    }
+    .cfbtn[data-u="뭅"]    { color:var(--c-뭅); }
+    .cfbtn[data-u="범"]    { color:var(--c-범); }
+    .cfbtn[data-u="동"]    { color:var(--c-동); }
+    .cfbtn[data-u="림"]    { color:var(--c-림); }
+    .cfbtn.ck[data-u="뭅"] { background:#FDECEA; border-color:var(--c-뭅); }
+    .cfbtn.ck[data-u="범"] { background:#E8EFF6; border-color:var(--c-범); }
+    .cfbtn.ck[data-u="동"] { background:#E2F4F2; border-color:var(--c-동); }
+    .cfbtn.ck[data-u="림"] { background:#F3ECFD; border-color:var(--c-림); }
+    .cfbtn .ck-icon { font-size: 11px; opacity: 0; }
+    .cfbtn.ck .ck-icon { opacity: 1; }
+    .btn-edit {
+      width: 100%; padding: 12px; background: var(--bg);
+      color: var(--text); border: none; border-radius: var(--r);
+      font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 14px;
+    }
+
+    /* ── Misc ────────────────────────────────── */
+    .hidden { display: none !important; }
+    .sync-bar {
+      position: fixed; bottom: 86px; left: 50%; transform: translateX(-50%);
+      background: #1A1A2E; color: #fff; font-size: 12px; font-weight: 600;
+      padding: 6px 16px; border-radius: 20px; z-index: 150;
+      pointer-events: none; opacity: 0; transition: opacity .3s;
+    }
+    .sync-bar.show { opacity: 1; }
+    .sync-bar.err { background: #E63946; }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ① Setup screen ──────────────────────────────────────── -->
+  <div id="setup" style="flex:1; overflow-y:auto; padding:28px 20px 48px; display:flex; flex-direction:column;">
+    <div class="setup-logo">📅</div>
+    <div class="setup-title">뭅범동림 캘린더</div>
+    <div class="setup-sub">GitHub Gist를 저장소로 사용해요.<br>완전 무료 · 카드 불필요 · 4명 공유</div>
+
+    <!-- 첫 번째 세팅 (Gist 생성) -->
+    <div id="tab-new">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.06em;margin-bottom:10px;">처음 설정하는 경우</div>
+      <div class="step-card">
+        <div class="step-row">
+          <span class="step-num">1</span>
+          <p>GitHub → Settings → Developer settings → <strong>Personal access tokens → Tokens (classic)</strong><br>
+          <code>New token</code> 클릭 → <code>gist</code> 체크 → 생성 → 토큰 복사</p>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:10px;">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="new-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <button class="btn-primary" onclick="createGist()">✨ Gist 생성 & 시작</button>
+
+      <!-- 생성 후 공유 박스 -->
+      <div class="share-box hidden" id="share-box">
+        <div class="share-title">✅ Gist가 생성됐어요! 친구들에게 아래 정보를 공유하세요</div>
+        <div class="share-id" id="share-gist-id"></div>
+        <p>위의 <strong>Gist ID</strong>와 <strong>토큰</strong>을 친구들에게 공유하면 다같이 쓸 수 있어요.</p>
+        <button class="btn-copy" onclick="copyShareInfo()">📋 Gist ID + 토큰 복사</button>
+      </div>
+
+      <div class="divider" style="margin-top:20px;">이미 Gist가 있나요?</div>
+
+      <div class="fg">
+        <label>Gist ID (친구에게 받은 경우)</label>
+        <input type="text" id="exist-gist-id" class="mono" placeholder="a1b2c3d4e5f6...">
+      </div>
+      <div class="fg">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="exist-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <button class="btn-secondary" onclick="connectGist()">연결하기</button>
+    </div>
+  </div>
+
+  <!-- ② Main app ───────────────────────────────────────────── -->
+  <div id="main" class="hidden" style="display:flex;flex-direction:column;height:100dvh;">
+
+    <header class="header">
+      <span class="header-title">📅 뭅범동림</span>
+      <button class="icon-btn" onclick="goToday()" title="오늘">오늘</button>
+      <button class="icon-btn" onclick="refreshData()" title="새로고침" id="refresh-btn">↻</button>
+      <div class="view-toggle">
+        <button class="vbtn on" id="vbtn-month" onclick="switchView('month')">월간</button>
+        <button class="vbtn"    id="vbtn-week"  onclick="switchView('week')">주간</button>
+      </div>
+    </header>
+
+    <div class="userbar">
+      <span class="userbar-label">나는:</span>
+      <div class="uchip" data-u="뭅" onclick="setUser('뭅')">뭅</div>
+      <div class="uchip" data-u="범" onclick="setUser('범')">범</div>
+      <div class="uchip" data-u="동" onclick="setUser('동')">동</div>
+      <div class="uchip" data-u="림" onclick="setUser('림')">림</div>
+    </div>
+
+    <main class="cal-main">
+      <!-- Month -->
+      <div id="mv" style="display:flex;flex-direction:column;height:100%;">
+        <div class="mnav">
+          <button class="navbtn" onclick="prev()">‹</button>
+          <h2 id="mv-title"></h2>
+          <button class="navbtn" onclick="next()">›</button>
+        </div>
+        <div class="mdow">
+          <span style="color:#E63946">일</span>
+          <span>월</span><span>화</span><span>수</span><span>목</span>
+          <span style="color:#457B9D">금</span>
+          <span style="color:#457B9D">토</span>
+        </div>
+        <div class="mgrid" id="mgrid"></div>
+      </div>
+      <!-- Week -->
+      <div id="wv" class="hidden" style="display:flex;flex-direction:column;height:100%;">
+        <div class="wnav">
+          <button class="navbtn" onclick="prev()">‹</button>
+          <h2 id="wv-title"></h2>
+          <button class="navbtn" onclick="next()">›</button>
+        </div>
+        <div class="wscroll" id="wscroll">
+          <div class="wgrid" id="wgrid"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab hidden" id="fab" onclick="openAdd()">+</button>
+
+  <!-- Sync toast -->
+  <div class="sync-bar" id="sync-bar"></div>
+
+  <!-- ③ Event form sheet ───────────────────────────────────── -->
+  <div class="overlay hide" id="form-ov" onclick="bgClose(event,'form-ov')">
+    <div class="sheet" onclick="event.stopPropagation()">
+      <div class="drag-bar"></div>
+      <div class="mhdr">
+        <span class="mhdr-title" id="form-lbl">일정 추가</span>
+        <button class="close-btn" onclick="closeSheet('form-ov')">✕</button>
+      </div>
+      <div class="fg">
+        <label>제목 *</label>
+        <input type="text" id="f-title" placeholder="일정 제목" maxlength="60">
+      </div>
+      <div class="fg">
+        <label>내용</label>
+        <textarea id="f-desc" placeholder="내용 (선택)" style="resize:vertical;min-height:72px;"></textarea>
+      </div>
+      <div class="fg">
+        <label>URL</label>
+        <input type="url" id="f-url" placeholder="https://...">
+      </div>
+      <div class="fg">
+        <label>시작</label>
+        <div class="frow">
+          <input type="date" id="f-sd" min="2026-04-01" max="2099-12-31">
+          <select id="f-st"></select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>종료</label>
+        <div class="frow">
+          <input type="date" id="f-ed" min="2026-04-01" max="2099-12-31">
+          <select id="f-et"></select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>작성자</label>
+        <div class="creator-row">
+          <button class="cbtn" data-u="뭅" onclick="pickCreator('뭅')">뭅</button>
+          <button class="cbtn" data-u="범" onclick="pickCreator('범')">범</button>
+          <button class="cbtn" data-u="동" onclick="pickCreator('동')">동</button>
+          <button class="cbtn" data-u="림" onclick="pickCreator('림')">림</button>
+        </div>
+      </div>
+      <button class="btn-save" onclick="submitEvent()">저장</button>
+      <button class="btn-del hidden" id="btn-del" onclick="removeEvent()">삭제</button>
+    </div>
+  </div>
+
+  <!-- ④ Detail sheet ───────────────────────────────────────── -->
+  <div class="overlay hide" id="det-ov" onclick="bgClose(event,'det-ov')">
+    <div class="sheet" onclick="event.stopPropagation()">
+      <div class="drag-bar"></div>
+      <div class="mhdr">
+        <span class="mhdr-title">일정 상세</span>
+        <button class="close-btn" onclick="closeSheet('det-ov')">✕</button>
+      </div>
+      <span class="det-badge" id="det-badge"></span>
+      <div class="det-title" id="det-title"></div>
+      <div class="det-time"  id="det-time"></div>
+      <div class="det-desc"  id="det-desc"></div>
+      <div class="det-url"   id="det-url"></div>
+      <div class="confirm-sec">
+        <div class="confirm-lbl">확인 여부</div>
+        <div class="confirm-row">
+          <button class="cfbtn" data-u="뭅" onclick="toggleConfirm('뭅')">뭅<br><span class="ck-icon">✓</span></button>
+          <button class="cfbtn" data-u="범" onclick="toggleConfirm('범')">범<br><span class="ck-icon">✓</span></button>
+          <button class="cfbtn" data-u="동" onclick="toggleConfirm('동')">동<br><span class="ck-icon">✓</span></button>
+          <button class="cfbtn" data-u="림" onclick="toggleConfirm('림')">림<br><span class="ck-icon">✓</span></button>
+        </div>
+      </div>
+      <button class="btn-edit" onclick="editEvent()">✏️ 수정하기</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  GitHub Gist Backend  (100% 무료, 카드 불필요)
+// ═══════════════════════════════════════════════════════
+const GH_API = 'https://api.github.com/gists';
+
+function cfg() {
+  return {
+    gistId: localStorage.getItem('cal_gist_id'),
+    token:  localStorage.getItem('cal_token')
+  };
+}
+
+async function apiRead() {
+  const { gistId, token } = cfg();
+  const res = await fetch(`${GH_API}/${gistId}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+  });
+  if (!res.ok) throw new Error(`read ${res.status}`);
+  const gist = await res.json();
+  const raw = gist.files['calendar.json']?.content || '{"events":[]}';
+  return JSON.parse(raw);
+}
+
+async function apiWrite(data) {
+  const { gistId, token } = cfg();
+  const res = await fetch(`${GH_API}/${gistId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      files: { 'calendar.json': { content: JSON.stringify(data, null, 2) } }
+    })
+  });
+  if (!res.ok) throw new Error(`write ${res.status}`);
+}
+
+async function apiCreate(token) {
+  const res = await fetch(GH_API, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      description: '뭅범동림 캘린더 데이터',
+      public: false,
+      files: { 'calendar.json': { content: JSON.stringify({ events: [] }, null, 2) } }
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `create ${res.status}`);
+  }
+  const data = await res.json();
+  return data.id;
+}
+
+// ── Setup handlers ──────────────────────────────────────
+let pendingGistId = null;
+let pendingToken  = null;
+
+async function createGist() {
+  const token = $('new-token').value.trim();
+  if (!token) { alert('토큰을 입력해주세요.'); return; }
+  showSync('Gist 생성 중…');
+  try {
+    const gistId = await apiCreate(token);
+    pendingGistId = gistId;
+    pendingToken  = token;
+    $('share-gist-id').textContent = gistId;
+    $('share-box').classList.remove('hidden');
+    hideSync();
+    // Auto-connect after creation
+    localStorage.setItem('cal_gist_id', gistId);
+    localStorage.setItem('cal_token', token);
+    startApp();
+  } catch(e) {
+    showSync('오류: ' + e.message, true);
+  }
+}
+
+async function connectGist() {
+  const gistId = $('exist-gist-id').value.trim();
+  const token  = $('exist-token').value.trim();
+  if (!gistId || !token) { alert('Gist ID와 토큰을 모두 입력해주세요.'); return; }
+  showSync('연결 중…');
+  try {
+    localStorage.setItem('cal_gist_id', gistId);
+    localStorage.setItem('cal_token', token);
+    // Verify by reading
+    await apiRead();
+    hideSync();
+    startApp();
+  } catch(e) {
+    localStorage.removeItem('cal_gist_id');
+    localStorage.removeItem('cal_token');
+    showSync('연결 실패: ' + e.message, true);
+  }
+}
+
+function copyShareInfo() {
+  const text = `Gist ID: ${pendingGistId}\nToken: ${pendingToken}`;
+  navigator.clipboard.writeText(text).then(() => alert('복사됐어요! 친구들에게 공유하세요 🎉'));
+}
+
+// ═══════════════════════════════════════════════════════
+//  App State
+// ═══════════════════════════════════════════════════════
+const USERS  = ['뭅','범','동','림'];
+const COLORS = { '뭅':'#E63946','범':'#457B9D','동':'#2A9D8F','림':'#9B5DE5' };
+const MIN_D  = new Date(2026, 3, 1);
+const MAX_D  = new Date(2099, 11, 31);
+const DOW    = ['일','월','화','수','목','금','토'];
+
+let events      = [];
+let view        = 'month';
+let curDate     = new Date();
+let meUser      = localStorage.getItem('cal_user') || null;
+let formCreator = meUser || '뭅';
+let editingId   = null;
+let viewingEv   = null;
+let autoTimer   = null;
+
+// ── Boot ────────────────────────────────────────────────
+function boot() {
+  populateTimes();
+  if (curDate < MIN_D) curDate = new Date(MIN_D);
+  const { gistId, token } = cfg();
+  if (gistId && token) { startApp(); return; }
+  // Show setup
+}
+
+async function startApp() {
+  hide('setup'); show('main'); $('main').style.display = 'flex';
+  show('fab');
+  updateUserBar();
+  switchView('month');
+  await refreshData();
+  // Auto-refresh every 90s
+  clearInterval(autoTimer);
+  autoTimer = setInterval(refreshData, 90000);
+}
+
+async function refreshData() {
+  const btn = $('refresh-btn');
+  btn.style.opacity = '.4';
+  try {
+    const data = await apiRead();
+    events = (data.events || []).sort((a,b) => a.startDate.localeCompare(b.startDate));
+    render();
+  } catch(e) {
+    showSync('새로고침 실패: ' + e.message, true);
+  }
+  btn.style.opacity = '1';
+}
+
+// ═══════════════════════════════════════════════════════
+//  Helpers
+// ═══════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const show = id => $(id).classList.remove('hidden');
+const hide = id => $(id).classList.add('hidden');
+const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtD = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const pad  = n => String(n).padStart(2,'0');
+
+function showSync(msg, isErr=false) {
+  const bar = $('sync-bar');
+  bar.textContent = msg;
+  bar.className = 'sync-bar show' + (isErr ? ' err' : '');
+  if (!isErr) setTimeout(hideSync, 1800);
+}
+function hideSync() { $('sync-bar').className = 'sync-bar'; }
+
+function populateTimes() {
+  let opts = '';
+  for (let h=0;h<24;h++) for (let m of [0,30]) {
+    const t = `${pad(h)}:${pad(m)}`;
+    opts += `<option value="${t}">${t}</option>`;
+  }
+  $('f-st').innerHTML = opts;
+  $('f-et').innerHTML = opts;
+}
+
+function setTime(id, t) {
+  const [h,m] = (t||'09:00').split(':').map(Number);
+  $(id).value = `${pad(h)}:${m<30?'00':'30'}`;
+  if (!$(id).value) $(id).selectedIndex = 0;
+}
+
+function addMins(t, mins) {
+  const [h,m] = t.split(':').map(Number);
+  let tot = h*60+m+mins;
+  tot = Math.min(tot, 23*60+30);
+  return `${pad(Math.floor(tot/60))}:${pad(tot%60)}`;
+}
+
+// ── User ────────────────────────────────────────────────
+function setUser(u) {
+  meUser = u; formCreator = u;
+  localStorage.setItem('cal_user', u);
+  updateUserBar();
+}
+function updateUserBar() {
+  document.querySelectorAll('.uchip').forEach(c => c.classList.toggle('on', c.dataset.u === meUser));
+}
+
+// ── View ────────────────────────────────────────────────
+function switchView(v) {
+  view = v;
+  $('vbtn-month').classList.toggle('on', v==='month');
+  $('vbtn-week' ).classList.toggle('on', v==='week');
+  $('mv').classList.toggle('hidden', v!=='month');
+  $('wv').classList.toggle('hidden', v!=='week');
+  render();
+}
+function prev() {
+  if (view==='month') curDate = new Date(curDate.getFullYear(), curDate.getMonth()-1, 1);
+  else curDate = new Date(curDate.getTime() - 7*86400000);
+  render();
+}
+function next() {
+  if (view==='month') curDate = new Date(curDate.getFullYear(), curDate.getMonth()+1, 1);
+  else curDate = new Date(curDate.getTime() + 7*86400000);
+  render();
+}
+function goToday() {
+  curDate = new Date();
+  if (curDate < MIN_D) curDate = new Date(MIN_D);
+  render();
+}
+function render() { view==='month' ? renderMonth() : renderWeek(); }
+
+// ── Month ────────────────────────────────────────────────
+function renderMonth() {
+  const y=curDate.getFullYear(), m=curDate.getMonth();
+  $('mv-title').textContent = `${y}년 ${m+1}월`;
+  const todayStr = fmtD(new Date());
+  const firstDow = new Date(y,m,1).getDay();
+  const lastDate = new Date(y,m+1,0).getDate();
+  const prevLast = new Date(y,m,0).getDate();
+  const total    = Math.ceil((firstDow+lastDate)/7)*7;
+  let html = '';
+  for (let i=0;i<total;i++) {
+    let d, mo=m, yr=y, other=false;
+    if (i < firstDow) { d=prevLast-firstDow+i+1; mo=m-1; other=true; }
+    else if (i >= firstDow+lastDate) { d=i-firstDow-lastDate+1; mo=m+1; other=true; }
+    else d=i-firstDow+1;
+    const dt = new Date(yr,mo,d);
+    const ds = fmtD(dt);
+    const isToday = ds===todayStr;
+    const dow = dt.getDay();
+    const out = dt<MIN_D || dt>MAX_D;
+    const cls = ['mday', other?'gray':'', isToday?'tday':'', dow===0?'sun':dow===6?'sat':'', out?'out':''].filter(Boolean).join(' ');
+    html += `<div class="${cls}" onclick="openAdd('${ds}')">`;
+    html += `<div class="dnum">${d}</div>`;
+    html += dayPills(ds);
+    html += `</div>`;
+  }
+  $('mgrid').innerHTML = html;
+  $('mgrid').querySelectorAll('.epill').forEach(p =>
+    p.addEventListener('click', e => { e.stopPropagation(); openDetail(p.dataset.id); })
+  );
+}
+
+function dayPills(ds) {
+  const evs = events.filter(e => ds >= e.startDate && ds <= (e.endDate||e.startDate));
+  if (!evs.length) return '';
+  let h = '';
+  evs.slice(0,3).forEach(ev =>
+    h += `<span class="epill" style="background:${COLORS[ev.creator]||'#888'}" data-id="${ev.id}">${esc(ev.title)}</span>`
+  );
+  if (evs.length>3) h += `<span class="epill-more">+${evs.length-3}개</span>`;
+  return h;
+}
+
+// ── Week ─────────────────────────────────────────────────
+function renderWeek() {
+  const dow = curDate.getDay();
+  const ws  = new Date(curDate); ws.setDate(curDate.getDate()-dow);
+  const days = Array.from({length:7},(_,i)=>{ const d=new Date(ws); d.setDate(ws.getDate()+i); return d; });
+  const todayStr = fmtD(new Date());
+  $('wv-title').textContent = `${days[0].getFullYear()}년 ${days[0].getMonth()+1}/${days[0].getDate()} – ${days[6].getMonth()+1}/${days[6].getDate()}`;
+  let html = `<div class="whead" style="grid-column:1;"></div>`;
+  days.forEach((d,i) => {
+    const isT = fmtD(d)===todayStr;
+    html += `<div class="whead${isT?' tcol':''}"><div class="wd">${DOW[i]}</div><div class="wdate">${d.getDate()}</div></div>`;
+  });
+  for (let h2=0;h2<24;h2++) for (let half=0;half<2;half++) {
+    const t = `${pad(h2)}:${half?'30':'00'}`;
+    const isHour = !half;
+    html += `<div class="wtlabel${isHour?' hborder':''}">${isHour?pad(h2)+':00':''}</div>`;
+    days.forEach(d => {
+      const ds = fmtD(d);
+      const slotEvs = events.filter(e => e.startDate===ds && e.startTime===t);
+      html += `<div class="wslot${isHour?' hborder':''}" onclick="openAdd('${ds}','${t}')">`;
+      slotEvs.forEach(ev => {
+        const [sh,sm] = (ev.startTime||'00:00').split(':').map(Number);
+        let   [eh,em] = (ev.endTime  ||'00:00').split(':').map(Number);
+        if (!ev.endTime||ev.endTime<=ev.startTime){eh=sh+1;em=sm;}
+        if (ev.endDate&&ev.endDate!==ev.startDate){eh=23;em=30;}
+        const dur = Math.max(30,(eh*60+em)-(sh*60+sm));
+        const ht  = Math.max(28,(dur/30)*30-2)+'px';
+        html += `<div class="wevent" style="background:${COLORS[ev.creator]||'#888'};height:${ht}" onclick="event.stopPropagation();openDetail('${ev.id}')">${esc(ev.title)}</div>`;
+      });
+      html += `</div>`;
+    });
+  }
+  $('wgrid').innerHTML = html;
+  requestAnimationFrame(()=>{ $('wscroll').scrollTop = 8*2*30+44; });
+}
+
+// ── Form sheet ───────────────────────────────────────────
+function openAdd(dateStr, timeStr) {
+  editingId = null;
+  $('form-lbl').textContent = '일정 추가';
+  $('f-title').value = ''; $('f-desc').value = ''; $('f-url').value = '';
+  const d = dateStr || fmtD(curDate);
+  $('f-sd').value = d; $('f-ed').value = d;
+  const t = timeStr || '09:00';
+  setTime('f-st', t); setTime('f-et', addMins(t,60));
+  pickCreator(meUser||'뭅');
+  hide('btn-del');
+  $('form-ov').classList.remove('hide');
+}
+
+function openAddForEdit(ev) {
+  editingId = ev.id;
+  $('form-lbl').textContent = '일정 수정';
+  $('f-title').value = ev.title||'';
+  $('f-desc').value  = ev.description||'';
+  $('f-url').value   = ev.url||'';
+  $('f-sd').value    = ev.startDate;
+  $('f-ed').value    = ev.endDate||ev.startDate;
+  setTime('f-st', ev.startTime||'09:00');
+  setTime('f-et', ev.endTime  ||'10:00');
+  pickCreator(ev.creator);
+  show('btn-del');
+  $('form-ov').classList.remove('hide');
+}
+
+function pickCreator(u) {
+  formCreator = u;
+  document.querySelectorAll('.cbtn').forEach(b => b.classList.toggle('on', b.dataset.u===u));
+}
+
+async function submitEvent() {
+  const title = $('f-title').value.trim();
+  if (!title) { $('f-title').focus(); return; }
+  showSync('저장 중…');
+  try {
+    const latest = await apiRead();
+    const evs    = latest.events || [];
+    const now    = new Date().toISOString();
+    const item   = {
+      title, description: $('f-desc').value.trim(),
+      url: $('f-url').value.trim(),
+      startDate: $('f-sd').value, startTime: $('f-st').value,
+      endDate:   $('f-ed').value, endTime:   $('f-et').value,
+      creator: formCreator, updatedAt: now
+    };
+    if (editingId) {
+      const idx = evs.findIndex(e=>e.id===editingId);
+      if (idx>=0) { evs[idx] = { ...evs[idx], ...item }; }
+    } else {
+      item.id = Date.now() + '-' + Math.random().toString(36).slice(2,7);
+      item.confirmedBy = []; item.createdAt = now;
+      evs.push(item);
+    }
+    await apiWrite({ events: evs });
+    events = evs.sort((a,b)=>a.startDate.localeCompare(b.startDate));
+    render();
+    closeSheet('form-ov');
+    showSync('저장됐어요 ✓');
+  } catch(e) { showSync('저장 실패: '+e.message, true); }
+}
+
+async function removeEvent() {
+  if (!editingId) return;
+  if (!confirm('일정을 삭제할까요?')) return;
+  showSync('삭제 중…');
+  try {
+    const latest = await apiRead();
+    const evs    = (latest.events||[]).filter(e=>e.id!==editingId);
+    await apiWrite({ events: evs });
+    events = evs;
+    render();
+    closeSheet('form-ov');
+    closeSheet('det-ov');
+    showSync('삭제됐어요 ✓');
+  } catch(e) { showSync('삭제 실패: '+e.message, true); }
+}
+
+// ── Detail sheet ─────────────────────────────────────────
+function openDetail(id) {
+  const ev = events.find(e=>e.id===id);
+  if (!ev) return;
+  viewingEv = ev;
+  const c = COLORS[ev.creator]||'#888';
+  const badge = $('det-badge');
+  badge.textContent = ev.creator;
+  badge.style.background = c+'22'; badge.style.color = c;
+  $('det-title').textContent = ev.title;
+  let t = ev.startDate;
+  if (ev.startTime) t += ' '+ev.startTime;
+  if (ev.endTime) { t += ' ~'; if (ev.endDate&&ev.endDate!==ev.startDate) t+=' '+ev.endDate; t+=' '+ev.endTime; }
+  $('det-time').textContent = t;
+  $('det-desc').textContent = ev.description||'';
+  $('det-url').innerHTML = ev.url ? `<a href="${esc(ev.url)}" target="_blank" rel="noopener">${esc(ev.url)}</a>` : '';
+  renderConfirmBtns(ev.confirmedBy||[]);
+  $('det-ov').classList.remove('hide');
+}
+
+function renderConfirmBtns(confirmed) {
+  document.querySelectorAll('.cfbtn').forEach(b => b.classList.toggle('ck', confirmed.includes(b.dataset.u)));
+}
+
+async function toggleConfirm(u) {
+  if (!viewingEv) return;
+  const arr = [...(viewingEv.confirmedBy||[])];
+  const idx = arr.indexOf(u);
+  if (idx>=0) arr.splice(idx,1); else arr.push(u);
+  try {
+    const latest = await apiRead();
+    const evs    = latest.events||[];
+    const ev     = evs.find(e=>e.id===viewingEv.id);
+    if (ev) ev.confirmedBy = arr;
+    await apiWrite({ events: evs });
+    viewingEv.confirmedBy = arr;
+    const local = events.find(e=>e.id===viewingEv.id);
+    if (local) local.confirmedBy = arr;
+    renderConfirmBtns(arr);
+  } catch(e) { showSync('오류: '+e.message, true); }
+}
+
+function editEvent() {
+  if (!viewingEv) return;
+  closeSheet('det-ov');
+  openAddForEdit(viewingEv);
+}
+
+// ── Sheet helpers ────────────────────────────────────────
+function closeSheet(id) { $(id).classList.add('hide'); }
+function bgClose(e, id) { if (e.target===$(id)) closeSheet(id); }
+
+// ── Init ─────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
