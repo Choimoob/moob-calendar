@@ -217,7 +217,8 @@
         <input type="password" id="token-input" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
           onkeydown="if(event.key==='Enter')connectToken()">
       </div>
-      <button class="btn-primary" onclick="connectToken()">시작하기</button>
+      <div id="token-error" style="color:#E63946;font-size:13px;margin-bottom:10px;line-height:1.5;"></div>
+      <button class="btn-primary" id="token-btn" onclick="connectToken()">시작하기</button>
       <div style="margin-top:14px;padding:12px 14px;background:#F3F4F6;border-radius:8px;font-size:12px;color:var(--muted);line-height:1.8;">
         토큰 발급 방법:<br>
         GitHub → Settings → Developer settings<br>
@@ -415,18 +416,31 @@ let _pendingGist = null, _pendingToken = null;
 
 async function connectToken() {
   const token = $('token-input').value.trim();
-  if (!token) return;
+  const errEl = $('token-error');
+  errEl.textContent = '';
+
+  if (!token) {
+    errEl.textContent = '토큰을 입력해주세요.';
+    return;
+  }
+
+  const btn = $('token-btn');
+  btn.textContent = '연결 중…';
+  btn.disabled = true;
   $('token-input').disabled = true;
-  sync('연결 중…');
+
   try {
     lsSet('cal_token', token);
-    await apiRead(); // 토큰+Gist 연결 검증
-    syncHide();
+    const data = await apiRead();
+    console.log('Gist 연결 성공:', data);
     startApp();
   } catch(e) {
+    console.error('connectToken error:', e);
     localStorage.removeItem('cal_token');
     $('token-input').disabled = false;
-    alert('연결 실패: ' + e.message + '\n\n토큰에 gist 권한이 있는지 확인해주세요.');
+    btn.textContent = '시작하기';
+    btn.disabled = false;
+    errEl.textContent = '❌ 연결 실패: ' + e.message + ' — 토큰에 gist 권한이 있는지 확인하세요.';
   }
 }
 
