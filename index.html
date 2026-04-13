@@ -204,64 +204,26 @@
 <div class="app" id="app">
 
   <!-- ① Setup ──────────────────────────────── -->
-  <div id="setup" style="flex:1;overflow-y:auto;padding:28px 20px 48px;display:flex;flex-direction:column;">
-    <div class="setup-logo">📅</div>
-    <div class="setup-title">뭅범동림 캘린더</div>
-
-    <!-- Mode A: GIST_ID가 세팅된 경우 → 토큰만 입력 -->
-    <div id="setup-token-only" class="hidden">
-      <div class="setup-sub">GitHub 토큰을 입력하면 바로 시작해요.<br>한 번 입력하면 이 기기에선 다시 안 물어봐요.</div>
-      <div class="step-card">
-        <div style="display:flex;align-items:flex-start;gap:4px;">
-          <span class="step-num">1</span>
-          <p>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
-          <code>New token</code> 클릭 → <code>gist</code> 체크 → 생성 후 복사</p>
-        </div>
-      </div>
-      <div class="fg" style="margin-top:10px;">
-        <label>GitHub Personal Access Token</label>
-        <input type="password" id="token-only-input" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-      </div>
-      <button class="btn-primary" onclick="connectTokenOnly()">시작하기</button>
+  <div id="setup" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;">
+    <div style="font-size:52px;margin-bottom:14px;">📅</div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:8px;">뭅범동림 캘린더</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;line-height:1.8;margin-bottom:28px;">
+      GitHub 토큰을 입력하면 바로 시작해요.<br>
+      한 번만 입력하면 다시 안 물어봐요.
     </div>
-
-    <!-- Mode B: GIST_ID 미세팅 → 최초 관리자 설정 -->
-    <div id="setup-full">
-      <div class="setup-sub">GitHub Gist를 저장소로 사용해요.<br>완전 무료 · 카드 불필요 · 4명 공유</div>
-      <div class="step-card">
-        <div style="display:flex;align-items:flex-start;gap:4px;">
-          <span class="step-num">1</span>
-          <p>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
-          <code>New token</code> 클릭 → <code>gist</code> 체크 → 생성 후 복사</p>
-        </div>
-      </div>
-      <div class="fg" style="margin-top:10px;">
-        <label>GitHub Personal Access Token</label>
-        <input type="password" id="new-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-      </div>
-      <button class="btn-primary" onclick="createGist()">✨ Gist 생성 &amp; 시작</button>
-
-      <div class="share-box hidden" id="share-box">
-        <div class="share-title">✅ 완료! 아래 링크를 친구들에게 공유하세요</div>
-        <div style="font-size:12px;color:#166534;margin-bottom:8px;line-height:1.6;">
-          링크를 클릭하면 <strong>아무것도 입력 안 해도</strong> 바로 캘린더가 열려요.<br>
-          한 번 열고 나면 다음부턴 그냥 URL로 접속하면 돼요.
-        </div>
-        <div class="share-id" id="share-gist-id" style="font-size:11px;word-break:break-all;"></div>
-        <button class="btn-copy" onclick="copyShareInfo()">📋 공유 링크 복사</button>
-        <button class="btn-primary" style="margin-top:8px;" onclick="startApp()">→ 캘린더 시작</button>
-      </div>
-
-      <div class="divider" style="margin-top:20px;">이미 Gist가 있나요?</div>
-      <div class="fg">
-        <label>Gist ID</label>
-        <input type="text" id="exist-gist-id" class="mono" placeholder="a1b2c3d4e5f6...">
-      </div>
+    <div style="width:100%;max-width:360px;">
       <div class="fg">
         <label>GitHub Personal Access Token</label>
-        <input type="password" id="exist-token" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+        <input type="password" id="token-input" class="mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+          onkeydown="if(event.key==='Enter')connectToken()">
       </div>
-      <button class="btn-secondary" onclick="connectGist()">연결하기</button>
+      <button class="btn-primary" onclick="connectToken()">시작하기</button>
+      <div style="margin-top:14px;padding:12px 14px;background:#F3F4F6;border-radius:8px;font-size:12px;color:var(--muted);line-height:1.8;">
+        토큰 발급 방법:<br>
+        GitHub → Settings → Developer settings<br>
+        → Personal access tokens → Tokens (classic)<br>
+        → New token → <code style="background:#E5E7EB;padding:1px 5px;border-radius:3px;color:#374151;">gist</code> 체크 → 생성 후 복사
+      </div>
     </div>
   </div>
 
@@ -413,7 +375,8 @@
 //  GitHub Gist API
 // ═══════════════════════════════════════════
 const GH = 'https://api.github.com/gists';
-const cfg = () => ({ gistId: ls('cal_gist_id'), token: ls('cal_token') });
+const GIST_ID = '0bad012ec92fb8ab3df651b7888355aa'; // 고정 Gist
+const cfg = () => ({ gistId: GIST_ID, token: ls('cal_token') });
 
 async function apiRead() {
   const { gistId, token } = cfg();
@@ -450,48 +413,20 @@ async function apiCreate(token) {
 // ═══════════════════════════════════════════
 let _pendingGist = null, _pendingToken = null;
 
-async function connectTokenOnly() {
-  const token = $('token-only-input').value.trim();
+async function connectToken() {
+  const token = $('token-input').value.trim();
   if (!token) return;
-  sync('확인 중…');
-  try {
-    lsSet('cal_token', token);
-    await apiRead(); // 연결 검증
-    syncHide(); startApp();
-  } catch(e) {
-    localStorage.removeItem('cal_token');
-    sync('토큰 오류: ' + e.message, true);
-  }
-}
-
-async function createGist() {
-  const token = $('new-token').value.trim();
-  if (!token) { alert('토큰을 입력해주세요.'); return; }
-  sync('Gist 생성 중…');
-  try {
-    const id = await apiCreate(token);
-    _pendingGist = id; _pendingToken = token;
-    lsSet('cal_gist_id', id); lsSet('cal_token', token);
-    syncHide();
-    await startApp(); // 바로 앱으로 진입
-    showShareModal(); // 앱 안에서 공유 링크 표시
-  } catch(e) {
-    alert('Gist 생성 실패: ' + e.message + '\n\n토큰에 gist 권한이 있는지 확인해주세요.');
-  }
-}
-
-async function connectGist() {
-  const gistId = $('exist-gist-id').value.trim();
-  const token  = $('exist-token').value.trim();
-  if (!gistId || !token) return;
+  $('token-input').disabled = true;
   sync('연결 중…');
   try {
-    lsSet('cal_gist_id', gistId); lsSet('cal_token', token);
-    await apiRead();
-    syncHide(); startApp();
+    lsSet('cal_token', token);
+    await apiRead(); // 토큰+Gist 연결 검증
+    syncHide();
+    startApp();
   } catch(e) {
-    localStorage.removeItem('cal_gist_id'); localStorage.removeItem('cal_token');
-    sync('연결 실패: ' + e.message, true);
+    localStorage.removeItem('cal_token');
+    $('token-input').disabled = false;
+    alert('연결 실패: ' + e.message + '\n\n토큰에 gist 권한이 있는지 확인해주세요.');
   }
 }
 
@@ -528,25 +463,18 @@ function boot() {
   populateTimes();
   if (curDate < MIN_D) curDate = new Date(MIN_D);
 
-  // URL 해시에 토큰+GistID가 있으면 자동 세팅 (친구 공유 링크)
-  // 형식: #ghp_TOKEN|GIST_ID
+  // URL 해시에 토큰이 있으면 자동 세팅 (공유 링크)
   const hash = location.hash.slice(1);
-  if (hash && hash.includes('|')) {
-    const [token, gistId] = hash.split('|');
-    if (token && gistId) {
-      lsSet('cal_token', token);
-      lsSet('cal_gist_id', gistId);
-      history.replaceState(null, '', location.pathname); // URL에서 토큰 제거
-      startApp(); return;
-    }
+  if (hash && hash.startsWith('ghp_')) {
+    lsSet('cal_token', hash);
+    history.replaceState(null, '', location.pathname);
+    startApp(); return;
   }
 
-  // localStorage에 이미 저장된 경우 바로 시작
-  if (ls('cal_token') && ls('cal_gist_id')) { startApp(); return; }
+  // localStorage에 토큰이 있으면 바로 시작
+  if (ls('cal_token')) { startApp(); return; }
 
-  // 최초 설정 화면
-  hide('setup-token-only');
-  show('setup-full');
+  // 토큰 입력 화면만 표시
 }
 
 async function startApp() {
