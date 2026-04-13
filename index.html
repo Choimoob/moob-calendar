@@ -156,9 +156,12 @@ html,body{height:100dvh;overflow:hidden;font-family:-apple-system,BlinkMacSystem
 <div id="main" class="hidden" style="display:flex;flex-direction:column;height:100dvh;">
   <header class="header">
     <span class="header-title">📅 뭅범동림</span>
-    <button class="icon-btn" id="share-btn" title="공유 링크 복사">🔗 공유</button>
+    <button class="icon-btn" id="share-btn">🔗 공유</button>
     <button class="icon-btn" id="refresh-btn">↻</button>
   </header>
+  <div id="sync-bar" style="background:#F3F4F6;text-align:center;font-size:11px;color:var(--muted);padding:4px 0;flex-shrink:0;">
+    🔄 데이터 동기화 중…
+  </div>
   <div class="userbar">
     <span>나는:</span>
     <div class="uchip" data-u="뭅">뭅</div>
@@ -346,7 +349,8 @@ async function showMain(){
   bindEvents();
   updateUserChips();
   await loadEvents();
-  setInterval(loadEvents, 90000);
+  setInterval(loadEvents, 60000);
+  startSyncCountdown();
 }
 
 // ══════════════════════════════════════════════
@@ -400,6 +404,7 @@ async function loadEvents(){
     renderList();
     const calOv = document.getElementById('cal-ov');
     if(calOv && !calOv.classList.contains('hide')) renderCal();
+    startSyncCountdown(); // 동기화 완료 → 카운트다운 리셋
   } catch(e){ toast('새로고침 실패: '+e.message, true); }
   if(btn) btn.style.opacity = '1';
 }
@@ -682,6 +687,25 @@ function copyShareLink(){
   }).catch(() => {
     prompt('아래 링크를 복사해서 친구들에게 공유하세요', url);
   });
+}
+
+let _countdownT, _syncSec = 60;
+function startSyncCountdown(){
+  clearInterval(_countdownT);
+  _syncSec = 60;
+  updateSyncBar();
+  _countdownT = setInterval(() => {
+    _syncSec--;
+    if(_syncSec <= 0) _syncSec = 60;
+    updateSyncBar();
+  }, 1000);
+}
+function updateSyncBar(){
+  const el = document.getElementById('sync-bar');
+  if(!el) return;
+  el.textContent = _syncSec === 60
+    ? '✅ 방금 동기화됨'
+    : `⏱ 다른 사람 변경사항은 ${_syncSec}초 후 자동 업데이트`;
 }
 
 let _toastT;
